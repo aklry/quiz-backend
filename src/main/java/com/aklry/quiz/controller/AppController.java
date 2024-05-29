@@ -128,8 +128,8 @@ public class AppController {
      * @param id
      * @return
      */
-    @GetMapping("/get/vo")
-    public BaseResponse<AppVO> getAppVOById(long id, HttpServletRequest request) {
+    @GetMapping("/get/vo/{id}")
+    public BaseResponse<AppVO> getAppVOById(@PathVariable long id, HttpServletRequest request) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
         App app = appService.getById(id);
