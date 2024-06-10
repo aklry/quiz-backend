@@ -22,11 +22,12 @@ public class UserServiceTest {
         String userAccount = "yupi";
         String userPassword = "";
         String checkPassword = "123456";
+        String userAvatar = "https://www.baidu.com/img/bd_logo1.png";
         try {
-            long result = userService.userRegister(userAccount, userPassword, checkPassword);
+            long result = userService.userRegister(userAccount, userPassword, checkPassword, userAvatar);
             Assertions.assertEquals(-1, result);
             userAccount = "yu";
-            result = userService.userRegister(userAccount, userPassword, checkPassword);
+            result = userService.userRegister(userAccount, userPassword, checkPassword, userAvatar);
             Assertions.assertEquals(-1, result);
         } catch (Exception e) {
 
