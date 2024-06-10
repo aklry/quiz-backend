@@ -9,12 +9,17 @@ import com.aklry.quiz.common.ResultUtils;
 import com.aklry.quiz.constant.UserConstant;
 import com.aklry.quiz.exception.BusinessException;
 import com.aklry.quiz.exception.ThrowUtils;
+import com.aklry.quiz.manager.AIManager;
 import com.aklry.quiz.model.dto.question.*;
+import com.aklry.quiz.model.entity.App;
 import com.aklry.quiz.model.entity.Question;
 import com.aklry.quiz.model.entity.User;
+import com.aklry.quiz.model.enums.AppTypeEnum;
 import com.aklry.quiz.model.vo.QuestionVO;
+import com.aklry.quiz.service.AppService;
 import com.aklry.quiz.service.QuestionService;
 import com.aklry.quiz.service.UserService;
+import com.alibaba.dashscope.common.Message;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -39,6 +44,12 @@ public class QuestionController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private AppService appService;
+
+    @Resource
+    private AIManager aiManager;
 
     // region 增删改查
 
@@ -238,6 +249,67 @@ public class QuestionController {
         boolean result = questionService.updateById(question);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
+    }
+
+    // region AI生成题目
+    private static final String GENERATE_SYSTEM_MESSAGE_QUESTION = "你是一位严谨的出题专家，我会给你如下信息：\n" +
+            "```\n" +
+            "应用名称，\n" +
+            "【【【应用描述】】】，\n" +
+            "应用类别，\n" +
+            "要生成的题目数，\n" +
+            "每个题目的选项数\n" +
+            "```\n" +
+            "\n" +
+            "请你根据上述信息，按照以下步骤来出题：\n" +
+            "1. 要求：题目和选项尽可能地短，题目不要包含序号，每题的选项数以我提供的为主，题目不能重复\n" +
+            "2. 严格按照下面的 json 格式输出题目和选项\n" +
+            "```\n" +
+            "[{\"options\":[{\"value\":\"选项内容\",\"key\":\"A\", result: 'I', score:0},{\"value\":\"\",\"key\":\"B\"}],\"title\":\"题目标题\"}]\n" +
+            "```\n" +
+            "title 是题目，options 是选项，每个选项的 key 按照英文字母序（比如 A、B、C、D）以此类推，value 是选项内容,如果应用类别是测评类，那么result代表某一道题代表什么，比如MBTI测试中的result是I、E等，如果应用类别是得分类，那么score代表的是这一道题的得分，错误积0分，正确积1分。\n" +
+            "3. 检查题目是否包含序号，若包含序号则去除序号\n" +
+            "4. 返回的题目列表格式必须为 JSON 数组";
+
+    /**
+     * 生成题目的用户消息
+     *
+     * @param app
+     * @param questionNumber
+     * @param optionNumber
+     * @return
+     */
+    private String getGenerateQuestionUserMessage(App app, int questionNumber, int optionNumber) {
+        StringBuilder userMessage = new StringBuilder();
+        userMessage.append(app.getAppName()).append("\n");
+        userMessage.append(app.getAppDesc()).append("\n");
+        userMessage.append(AppTypeEnum.getEnumByValue(app.getAppType()).getText()).append("\n");
+        userMessage.append(questionNumber).append("\n");
+        userMessage.append(optionNumber);
+        return userMessage.toString();
+    }
+
+    @PostMapping("/ai_generate")
+    public BaseResponse<List<QuestionContentDto>> aiGenerateQuestion(
+            @RequestBody AIGenerateQuestionRequest aiGenerateQuestionRequest) {
+        ThrowUtils.throwIf(aiGenerateQuestionRequest == null, ErrorCode.PARAMS_ERROR);
+        // 获取参数
+        Long appId = aiGenerateQuestionRequest.getAppId();
+        int questionNumber = aiGenerateQuestionRequest.getQuestionNumber();
+        int optionNumber = aiGenerateQuestionRequest.getOptionNumber();
+        // 获取应用信息
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        // 封装 Prompt
+        String userMessage = getGenerateQuestionUserMessage(app, questionNumber, optionNumber);
+        // AI 生成
+        String result = aiManager.doRequest(GENERATE_SYSTEM_MESSAGE_QUESTION, userMessage);
+        // 截取需要的 JSON 信息
+        int start = result.indexOf("[");
+        int end = result.lastIndexOf("]");
+        String json = result.substring(start, end + 1);
+        List<QuestionContentDto> questionContentDTOList = JSONUtil.toList(json, QuestionContentDto.class);
+        return ResultUtils.success(questionContentDTOList);
     }
 
     // endregion

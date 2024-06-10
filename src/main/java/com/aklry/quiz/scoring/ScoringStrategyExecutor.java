@@ -4,8 +4,11 @@ import com.aklry.quiz.common.ErrorCode;
 import com.aklry.quiz.exception.BusinessException;
 import com.aklry.quiz.model.entity.App;
 import com.aklry.quiz.model.entity.UserAnswer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -14,6 +17,8 @@ import java.util.List;
  */
 @Service
 public class ScoringStrategyExecutor {
+    private static final Logger log = LoggerFactory.getLogger(ScoringStrategyExecutor.class);
+    @Resource
     private List <ScoringStrategy> scoringStrategyList;
 
     public UserAnswer doScore(List<String> choicesList, App app) throws Exception {

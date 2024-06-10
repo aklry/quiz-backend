@@ -148,3 +148,4 @@ application.properties
 application-local.yml
 application-prod.yml
 
+/src/test/java/com/aklry/quiz/TongYiAITest.java
