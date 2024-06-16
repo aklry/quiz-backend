@@ -31,7 +31,6 @@ import static com.aklry.quiz.constant.UserConstant.USER_LOGIN_STATE;
  * 用户服务实现
  *
  * @author <a href="https://github.com/aklry">aklry</a>
- * 
  */
 @Service
 @Slf4j

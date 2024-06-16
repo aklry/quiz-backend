@@ -14,7 +14,6 @@ import java.util.List;
  * 用户服务
  *
  * @author <a href="https://github.com/aklry">aklry</a>
- * 
  */
 public interface UserService extends IService<User> {
 
